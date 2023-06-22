@@ -11,6 +11,22 @@ namespace omaha {
 
 namespace {
 
+bool ParseReferralCode(const TCHAR* filename, CString& referral_code) {
+  // Scan backwards for last dash in filename.
+  const TCHAR* scan = filename + lstrlen(filename) - 1;
+  while (scan != filename && *scan != _T('-'))
+    --scan;
+
+  if (*scan++ != _T('-'))
+    return false;
+
+  // Standard referral code is 6 characters.
+  const TCHAR* ref_code = scan;
+  referral_code = ref_code;
+
+  return true;
+}
+
 bool ParseStandardReferralCode(const TCHAR* filename, CString& referral_code) {
   // Scan backwards for last dash in filename.
   const TCHAR* scan = filename + lstrlen(filename) - 1;
@@ -108,12 +124,7 @@ bool ParseReferralCode(const TCHAR* installer_filename,
   if (scan != filename && (scan != filename + lstrlen(filename)))
     filename[scan - filename + 1];
 
-  // First check for 6-character standard referral code XXXDDD, where
-  // X is an alphabetic character and D is a numeric character. If not
-  // found, check for an alphabetic referral code of any length in the
-  // form XXX-XXX.
-  if (!ParseStandardReferralCode(filename, referral_code) &&
-      !ParseExtendedReferralCode(filename, referral_code)) {
+  if (!ParseReferralCode(filename, referral_code)) {
     return false;
   }
 
@@ -226,9 +237,6 @@ CString GetReferralCode(const CString& module_file_name) {
     return _T("none");
 
   referral_code.MakeUpper();
-
-  if (!IsReferralCodeWhiteListed(referral_code))
-    return _T("none");
 
   return referral_code;
 }
