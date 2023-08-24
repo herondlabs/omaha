@@ -83,6 +83,10 @@ const TCHAR* const kUrlCodeRedCheck =
 const TCHAR* const kUrlUsageStatsReport =
     _T("https://updates.herond.org/tbproxy/usagestats");
 
+// App logo.
+const TCHAR* const kUrlAppLogo =
+    _T("https://dl.") COMPANY_DOMAIN _T("/update2/installers/icons/");
+
 #if defined(HAS_DEVICE_MANAGEMENT)
 
 // Device Management API url.
