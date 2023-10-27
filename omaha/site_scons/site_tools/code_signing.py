@@ -83,7 +83,7 @@ def generate(env):
       generator=SignedBinaryGenerator,
       emitter=SignedBinaryEmitter)
   env['BUILDERS']['DualSignedBinary'] = SCons.Script.Builder(
-      generator=DigicertSignedBinaryGenerator,
+      generator=DualSignedBinaryGenerator,
       emitter=SignedBinaryEmitter)
 
 
@@ -119,7 +119,7 @@ def SignedBinaryGenerator(source, target, env, for_signature):
         signing_cmd += ' /csp "$SHA1_CSP"'
       # Add certificate password if any.
       if env.subst('$CERTIFICATE_PASSWORD'):
-        signing_cmd += ' /k "$CERTIFICATE_PASSWORD"'
+        signing_cmd += ' /p "$CERTIFICATE_PASSWORD"'
     # Add certificate store if any.
     if env.subst('$CERTIFICATE_NAME'):
       # The command used to do signing (target added on below).
