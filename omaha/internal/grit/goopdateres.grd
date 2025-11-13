@@ -551,7 +551,7 @@
 
       <message name="IDS_SLOGAN"
                desc="Slogan of Herond Browser">
-        A Gateway to the Web3 Era <ph name="NEW_LINE">%1!s!<ex>&lt;b&gt;</ex></ph> <ph name="NEW_LINE">%2!s!<ex>&lt;/br&gt;</ex></ph> Discover and Thrive
+        A gate way to the Web3 Era <ph name="NEW_LINE">%1!s!<ex>&lt;b&gt;</ex></ph> <ph name="NEW_LINE">%2!s!<ex>&lt;/br&gt;</ex></ph> Discover and Thrive
       </message>
     </messages>
 
