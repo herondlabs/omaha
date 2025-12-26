@@ -32,6 +32,16 @@ action("build_omaha_installer") {
     assert(brave_channel == "", "Unknown channel name")
   }
 
+  # For beta version (x.y.z.t) => The pv should be [chromium_major].x.y.(z*100 + t)
+  # Where: x = brave_version_major, y = brave_version_minor, z = brave_version_build, t = herond_version_weekly (or 0 if empty)
+  # For non-beta channels, use the standard format
+  # Pass channel and version components to Python script for beta version calculation
+  if (brave_channel == "beta") {
+    _brave_full_version = "$chrome_version_major.$brave_version_major.$brave_version_minor.$brave_version_build.$herond_version_weekly"
+  } else {
+    _brave_full_version = "$chrome_version_major.$brave_version_major.$brave_version_minor.$brave_version_build"
+  }
+
   out_dir = rebase_path(root_out_dir)
 
   args = [
@@ -47,7 +57,7 @@ action("build_omaha_installer") {
     "--tag_ap=$tag_ap",
     "--tag_app_name=$_tag_app_name",
     "--tag_lang=$tag_lang",
-    "--brave_full_version=$chrome_version_major.$brave_version_major.$brave_version_minor.$brave_version_build",
+    "--brave_full_version=$_brave_full_version",
   ]
 
   outputs = [

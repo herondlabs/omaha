@@ -102,6 +102,16 @@ def prepare_untagged(omaha_dir, name, root_out_dir, brave_installer_exe, app_gui
   if not os.path.exists(out_dir):
     os.makedirs(out_dir)
 
+  # For beta version (x.y.z.t) => The pv should be [chromium_major].x.y.(z*100 + t)
+  # If version has 5 components (chrome_major.x.y.z.t), calculate beta patch: z*100 + t
+  version_parts = brave_full_version.split('.')
+  if len(version_parts) == 5:
+    # Beta version: calculate z*100 + t where z = version_parts[3], t = version_parts[4] (or 0 if empty)
+    z = int(version_parts[3])
+    t = int(version_parts[4]) if version_parts[4] and version_parts[4].strip() else 0
+    beta_patch = z * 100 + t
+    brave_full_version = '.'.join(version_parts[:3]) + '.' + str(beta_patch)
+
   # prepare manifest file.
   f = open(os.path.join(omaha_dir, 'manifest_template.gup'),'r')
   filedata = f.read()
