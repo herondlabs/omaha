@@ -25,6 +25,7 @@ def config_address():
 def build(omaha_dir, standalone_installers_dir, debug):
   # move to omaha/omaha and start build.
   os.chdir(os.path.join(omaha_dir, 'omaha'))
+  env = dict(os.environ)
 
   # set signing environment variables
   skip_authenticode = os.environ.get('SKIP_AUTHENTICODE', 'false').lower() == 'true'
@@ -43,29 +44,28 @@ def build(omaha_dir, standalone_installers_dir, debug):
   command.extend(['--all', '--standalone_installers_dir=' + standalone_installers_dir])
 
   # update sign flag following: https://stackoverflow.com/questions/17927895/automate-extended-validation-ev-code-signing-with-safenet-etoken
-  if key_cer_path:
-    command.append('--authenticode_file=' + key_cer_path)
-    command.append('--sha1_authenticode_file=' + key_cer_path)
-    command.append('--sha2_authenticode_file=' + key_cer_path)
-  if authenticode_password:
-    command.append('--authenticode_password=' + authenticode_password)
-    command.append('--sha1_authenticode_password=' + authenticode_password)
-    command.append('--sha2_authenticode_password=' + authenticode_password)
-  if authenticode_hash:
-    command.append('--authenticode_hash=' + authenticode_hash)
-    command.append('--sha1_authenticode_hash=' + authenticode_hash)
-    command.append('--sha2_authenticode_hash=' + authenticode_hash)
-    # Our certs identified by hash are always in the machine store:
-    command.append('--use_authenticode_machine_store')
-
-  if csp:
-    command.append('--sha1_csp=' + csp)
-    command.append('--sha2_csp=' + csp)
-
-  # Pick signtool.exe from PATH. This in particular ensures that we use the same
-  # signtool as Chromium, which is 64 bit and thus has access to the same certs.
-  env = dict(os.environ)
   if not skip_authenticode:
+    if key_cer_path:
+      command.append('--authenticode_file=' + key_cer_path)
+      command.append('--sha1_authenticode_file=' + key_cer_path)
+      command.append('--sha2_authenticode_file=' + key_cer_path)
+    if authenticode_password:
+      command.append('--authenticode_password=' + authenticode_password)
+      command.append('--sha1_authenticode_password=' + authenticode_password)
+      command.append('--sha2_authenticode_password=' + authenticode_password)
+    if authenticode_hash:
+      command.append('--authenticode_hash=' + authenticode_hash)
+      command.append('--sha1_authenticode_hash=' + authenticode_hash)
+      command.append('--sha2_authenticode_hash=' + authenticode_hash)
+      # Our certs identified by hash are always in the machine store:
+      command.append('--use_authenticode_machine_store')
+
+    if csp:
+      command.append('--sha1_csp=' + csp)
+      command.append('--sha2_csp=' + csp)
+
+    # Pick signtool.exe from PATH. This in particular ensures that we use the same
+    # signtool as Chromium, which is 64 bit and thus has access to the same certs.
     signtool_path = shutil.which('signtool.exe')
     assert signtool_path, 'signtool.exe is expected to be on PATH'
     env['OMAHA_SIGNTOOL_SDK_DIR'] = os.path.dirname(signtool_path)
