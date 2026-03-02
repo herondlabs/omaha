@@ -24,7 +24,10 @@
 
   BuildMetaInstaller(): Build a meta-installer.
 """
+import os
+from SCons.Script import Copy
 
+SKIP_AUTHENTICODE = os.getenv('SKIP_AUTHENTICODE', '').lower() == 'true'
 
 def BuildMetaInstaller(
     env,
@@ -169,14 +172,22 @@ def BuildMetaInstaller(
       action='"%s" --copyappend $SOURCES $TARGET' % resmerge_path)
 
   authenticode_signed_target_prefix = 'authenticode_'
-  authenticode_signed_exe = env.DualSignedBinary(
-      target=authenticode_signed_target_prefix + target_name,
-      source=merged_output,
-      )
+  if SKIP_AUTHENTICODE:
+    # CI mode: no signing, no certificate tagging
+    final_exe = env.Command(
+        target=target_name,
+        source=merged_output,
+        action=Copy('$TARGET', '$SOURCE'),
+    )
+  else:
+    authenticode_signed_exe = env.DualSignedBinary(
+        target=authenticode_signed_target_prefix + target_name,
+        source=merged_output,
+    )
 
-  ready_for_tagging_exe = env.OmahaCertificateTag(
-      target=target_name,
-      source=authenticode_signed_exe,
-  )
+    final_exe = env.OmahaCertificateTag(
+        target=target_name,
+        source=authenticode_signed_exe,
+    )
 
-  return env.Replicate(output_dir, ready_for_tagging_exe)
+  return env.Replicate(output_dir, final_exe)

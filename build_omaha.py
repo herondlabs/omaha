@@ -65,7 +65,7 @@ def build(omaha_dir, standalone_installers_dir, debug):
     assert signtool_path, 'signtool.exe is expected to be on PATH'
     env['OMAHA_SIGNTOOL_SDK_DIR'] = os.path.dirname(signtool_path)
   else:
-    print("SKIP_AUTHENTICODE=true → Code signing disabled")
+    print("SKIP_AUTHENTICODE=true -> Code signing disabled")
 
   sp.check_call(command, stderr=sp.STDOUT, env=env)
 

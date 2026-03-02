@@ -26,7 +26,7 @@ To sign an EXE/DLL do:
 If no certificate file is specified, copying instead of signing will occur.
 If an empty timestamp server string is specified, there will be no timestamp.
 """
-
+import os
 import optparse
 from SCons.compat._scons_optparse import OptionConflictError
 import SCons.Script
@@ -47,35 +47,36 @@ def generate(env):
     # for each build type.
     pass
 
+  skip = os.getenv('SKIP_AUTHENTICODE', '').lower() == 'true'
   env.SetDefault(
-      # Path to Microsoft signtool.exe
-      SIGNTOOL='"$THIRD_PARTY/code_signing/signtool.exe"',
-      # No certificate by default.
-      CERTIFICATE_PATH='',
-      # No sha1 certificate by default.
-      SHA1_CERTIFICATE_PATH='',
-      # No sha256 certificate by default.
-      SHA2_CERTIFICATE_PATH='',
-      # No certificate password by default.
-      CERTIFICATE_PASSWORD='',
-      # The default timestamp server.
-      TIMESTAMP_SERVER='http://timestamp.digicert.com',
-      # The default timestamp server when dual-signing.
-      SHA1_TIMESTAMP_SERVER='http://timestamp.digicert.com',
-      # The default timestamp server for sha256 timestamps.
-      SHA2_TIMESTAMP_SERVER='http://timestamp.digicert.com?alg=sha256',
-      # The default certificate store.
-      CERTIFICATE_STORE='my',
-      # Set the certificate name from the command line.
-      CERTIFICATE_NAME=SCons.Script.GetOption('certificate_name'),
-      # The name (substring) of the certificate issuer, when needed to
-      # differentiate between multiple certificates.
-      SHA1_CERTIFICATE_ISSUER='Digicert',
-      SHA2_CERTIFICATE_ISSUER='Digicert',
-      # Or differentiate based on the cert's hash.
-      CERTIFICATE_HASH='5A9272CE76A9415A4A3A5002A2589A049312AA40',
-      SHA1_CERTIFICATE_HASH='',
-      SHA2_CERTIFICATE_HASH='',
+    # Path to Microsoft signtool.exe
+    SIGNTOOL='"$THIRD_PARTY/code_signing/signtool.exe"',
+    # No certificate by default.
+    CERTIFICATE_PATH='',
+    # No sha1 certificate by default.
+    SHA1_CERTIFICATE_PATH='',
+    # No sha256 certificate by default.
+    SHA2_CERTIFICATE_PATH='',
+    # No certificate password by default.
+    CERTIFICATE_PASSWORD='',
+    # The default timestamp server.
+    TIMESTAMP_SERVER='' if skip else 'http://timestamp.digicert.com',
+    # The default timestamp server when dual-signing.
+    SHA1_TIMESTAMP_SERVER='' if skip else 'http://timestamp.digicert.com',
+    # The default timestamp server for sha256 timestamps.
+    SHA2_TIMESTAMP_SERVER='' if skip else 'http://timestamp.digicert.com?alg=sha256',
+    # The default certificate store.
+    CERTIFICATE_STORE='my',
+    # Set the certificate name from the command line.
+    CERTIFICATE_NAME='' if skip else SCons.Script.GetOption('certificate_name'),
+    # The name (substring) of the certificate issuer, when needed to
+    # differentiate between multiple certificates.
+    SHA1_CERTIFICATE_ISSUER='Digicert',
+    SHA2_CERTIFICATE_ISSUER='Digicert',
+    # Or differentiate based on the cert's hash.
+    CERTIFICATE_HASH='' if skip else '5A9272CE76A9415A4A3A5002A2589A049312AA40',
+    SHA1_CERTIFICATE_HASH='',
+    SHA2_CERTIFICATE_HASH='',
   )
 
   # Setup Builder for Signing

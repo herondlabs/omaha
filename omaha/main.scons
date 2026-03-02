@@ -142,11 +142,6 @@ _win_env_tools = [
     'omaha_builders',
 ]
 
-if skip_authenticode:
-    print("SKIP_AUTHENTICODE=true → Code signing disabled")
-    print("Code signing tool removed from build.")
-    _win_env_tools = [t for t in _win_env_tools if t != 'code_signing']
-
 # Windows is the only environment we bulid for, so create a specialized base
 # environment for Windows.
 win_env = Environment(
@@ -405,7 +400,9 @@ if win_env.Bit('build_three_versions'):
 
 # Allow use of command-line-specified certificates to sign with, but
 # only if we're not on the build server.
-if not win_env.Bit('build_server'):
+if skip_authenticode:
+    print("SKIP_AUTHENTICODE=true -> Code signing disabled")
+elif not win_env.Bit('build_server'):
   _authenticode_hash = GetOption('authenticode_hash')
   _authenticode_file = GetOption('authenticode_file')
   _authenticode_password = GetOption('authenticode_password')
