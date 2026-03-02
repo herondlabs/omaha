@@ -110,13 +110,42 @@ if (_sdk_dir is None):
      omaha_version_utils.VC100:'platformsdk_vc_10_0',
      omaha_version_utils.VC80:'platformsdk/v6_1' }[_msc_ver])
 
+skip_authenticode = os.environ.get('SKIP_AUTHENTICODE', 'false').lower() == 'true'
 _sdk_version = os.getenv('OMAHA_WINDOWS_SDK_10_0_VERSION', None)
 _wtl_dir = os.getenv('OMAHA_WTL_DIR', '$GOOGLE3/third_party/wtl/files')
-sign_retry_time = os.getenv('OMAHA_SIGN_RETRY', 3)
-sign_retry_duration = os.getenv('OMAHA_SIGN_DURATION', 5)
+sign_retry_time = int(os.getenv('OMAHA_SIGN_RETRY', 3))
+sign_retry_duration = int(os.getenv('OMAHA_SIGN_DURATION', 5))
 signtool_sdk_dir = os.getenv('OMAHA_SIGNTOOL_SDK_DIR')
 _signtool_path = ('python "$MAIN_DIR/tools/retry.py" %s %s \"%s/%s\"' %
                   (sign_retry_time, sign_retry_duration, signtool_sdk_dir, 'signtool.exe'))
+_win_env_tools = [
+    'component_setup',
+    'target_platform_windows',
+    { omaha_version_utils.VC170:'windows_vc17_0_host64_x86',
+        omaha_version_utils.VC160:'windows_vc16_0_host64_x86',
+        omaha_version_utils.VC150:'windows_vc15_0_host64_x86',
+        omaha_version_utils.VC140:'windows_vc14_0',
+        omaha_version_utils.VC120:'windows_vc12_0',
+        omaha_version_utils.VC100:'windows_vc10_0',
+        omaha_version_utils.VC80:'target_platform_windows' }[_msc_ver],
+    'masm',         # Use 'masm' to override the 'as' tool currently
+                    # used by default in 'target_platform_windows'
+    { omaha_version_utils.VC170:'atlmfc_vc17_0',
+        omaha_version_utils.VC160:'atlmfc_vc16_0',
+        omaha_version_utils.VC150:'atlmfc_vc15_0',
+        omaha_version_utils.VC140:'atlmfc_vc14_0',
+        omaha_version_utils.VC120:'atlmfc_vc12_0',
+        omaha_version_utils.VC100:'atlmfc_vc10_0',
+        omaha_version_utils.VC80:'atlmfc_vc80' }[_msc_ver],
+    'code_signing',
+    'component_targets_msvs',
+    'omaha_builders',
+]
+
+if skip_authenticode:
+    print("SKIP_AUTHENTICODE=true → Code signing disabled")
+    print("Code signing tool removed from build.")
+    _win_env_tools = [t for t in _win_env_tools if t != 'code_signing']
 
 # Windows is the only environment we bulid for, so create a specialized base
 # environment for Windows.
@@ -126,29 +155,7 @@ win_env = Environment(
     # the appropriate environment variables manually below.
     PLATFORM_SDK_DIR = _sdk_dir,
     WINDOWS_SDK_10_0_VERSION=_sdk_version,
-    tools=[
-        'component_setup',
-        'target_platform_windows',
-        { omaha_version_utils.VC170:'windows_vc17_0_host64_x86',
-          omaha_version_utils.VC160:'windows_vc16_0_host64_x86',
-          omaha_version_utils.VC150:'windows_vc15_0_host64_x86',
-          omaha_version_utils.VC140:'windows_vc14_0',
-          omaha_version_utils.VC120:'windows_vc12_0',
-          omaha_version_utils.VC100:'windows_vc10_0',
-          omaha_version_utils.VC80:'target_platform_windows' }[_msc_ver],
-        'masm',         # Use 'masm' to override the 'as' tool currently
-                        # used by default in 'target_platform_windows'
-        { omaha_version_utils.VC170:'atlmfc_vc17_0',
-          omaha_version_utils.VC160:'atlmfc_vc16_0',
-          omaha_version_utils.VC150:'atlmfc_vc15_0',
-          omaha_version_utils.VC140:'atlmfc_vc14_0',
-          omaha_version_utils.VC120:'atlmfc_vc12_0',
-          omaha_version_utils.VC100:'atlmfc_vc10_0',
-          omaha_version_utils.VC80:'atlmfc_vc80' }[_msc_ver],
-        'code_signing',
-        'component_targets_msvs',
-        'omaha_builders',
-    ],
+    tools=_win_env_tools,
     msc_ver = _msc_ver,
 
     # Visual Studio 2008 does not ship the sign tool. Use the sign tool from

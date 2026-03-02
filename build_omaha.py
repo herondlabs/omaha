@@ -36,12 +36,7 @@ def build(omaha_dir, standalone_installers_dir, debug):
   csp = os.environ.get('CER_SCP', '')
 
   mode = 'dbg-win' if debug else 'opt-win'
-  command = ['hammer.bat', 'MODE=' + mode]
-
-  if skip_authenticode:
-    command.append('SIGN=0')
-
-  command.extend(['--all', '--standalone_installers_dir=' + standalone_installers_dir])
+  command = ['hammer.bat', 'MODE=' + mode, '--all', '--standalone_installers_dir=' + standalone_installers_dir]
 
   # update sign flag following: https://stackoverflow.com/questions/17927895/automate-extended-validation-ev-code-signing-with-safenet-etoken
   if not skip_authenticode:
@@ -69,6 +64,8 @@ def build(omaha_dir, standalone_installers_dir, debug):
     signtool_path = shutil.which('signtool.exe')
     assert signtool_path, 'signtool.exe is expected to be on PATH'
     env['OMAHA_SIGNTOOL_SDK_DIR'] = os.path.dirname(signtool_path)
+  else:
+    print("SKIP_AUTHENTICODE=true → Code signing disabled")
 
   sp.check_call(command, stderr=sp.STDOUT, env=env)
 
