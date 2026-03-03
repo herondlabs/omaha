@@ -401,7 +401,18 @@ if win_env.Bit('build_three_versions'):
 # Allow use of command-line-specified certificates to sign with, but
 # only if we're not on the build server.
 if skip_authenticode:
-    print("SKIP_AUTHENTICODE=true -> Code signing disabled")
+  print("SKIP_AUTHENTICODE=true -> Using test certificates for signing structure")
+  win_env.SetBits('test_certificate')
+  win_env.Replace(
+    CERTIFICATE_PATH='$MAIN_DIR/data/OmahaTestCert.pfx',
+    CERTIFICATE_PASSWORD=default_cert_password,
+    SHA1_CERTIFICATE_PATH='$MAIN_DIR/data/Sha1OmahaTestCert.pfx',
+    SHA2_CERTIFICATE_PATH='$MAIN_DIR/data/Sha2OmahaTestCert.pfx',
+    SHA1_CERTIFICATE_ISSUER='',
+    SHA2_CERTIFICATE_ISSUER='',
+    SHA1_CERTIFICATE_PASSWORD=default_sha1_cert_password,
+    SHA2_CERTIFICATE_PASSWORD=default_sha2_cert_password,
+  )
 elif not win_env.Bit('build_server'):
   _authenticode_hash = GetOption('authenticode_hash')
   _authenticode_file = GetOption('authenticode_file')

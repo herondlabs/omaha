@@ -24,11 +24,6 @@
 
   BuildMetaInstaller(): Build a meta-installer.
 """
-import os
-from SCons.Script import Copy
-
-SKIP_AUTHENTICODE = os.getenv('SKIP_AUTHENTICODE', '').lower() == 'true'
-
 def BuildMetaInstaller(
     env,
     target_name,
@@ -130,7 +125,7 @@ def BuildMetaInstaller(
       env.File(installers_sources_path + '/resource.rc.in').abspath,
       env.File(manifest_path).abspath,
       env.File(installers_sources_path + '/resource.h').abspath
-      )
+  )
 
   # Generate the .rc file
   rc_output = env.Command(
@@ -154,7 +149,7 @@ def BuildMetaInstaller(
   dll_inputs = [
       installers_sources_path + '/resource_only_dll.def',
       res_file
-      ]
+  ]
 
   dll_output = dll_env.ComponentLibrary(
       lib_name='%spayload%s' % (prefix, suffix),
@@ -169,25 +164,18 @@ def BuildMetaInstaller(
   merged_output = env.Command(
       target='unsigned_' + target_name,
       source=[empty_metainstaller_path, dll_output_name],
-      action='"%s" --copyappend $SOURCES $TARGET' % resmerge_path)
+      action='"%s" --copyappend $SOURCES $TARGET' % resmerge_path
+  )
 
   authenticode_signed_target_prefix = 'authenticode_'
-  if SKIP_AUTHENTICODE:
-    # CI mode: no signing, no certificate tagging
-    final_exe = env.Command(
-        target=target_name,
-        source=merged_output,
-        action=Copy('$TARGET', '$SOURCE'),
-    )
-  else:
-    authenticode_signed_exe = env.DualSignedBinary(
-        target=authenticode_signed_target_prefix + target_name,
-        source=merged_output,
-    )
+  authenticode_signed_exe = env.DualSignedBinary(
+      target=authenticode_signed_target_prefix + target_name,
+      source=merged_output,
+  )
 
-    final_exe = env.OmahaCertificateTag(
-        target=target_name,
-        source=authenticode_signed_exe,
-    )
+  ready_for_tagging_exe = env.OmahaCertificateTag(
+      target=target_name,
+      source=authenticode_signed_exe,
+  )
 
-  return env.Replicate(output_dir, final_exe)
+  return env.Replicate(output_dir, ready_for_tagging_exe)

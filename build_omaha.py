@@ -89,9 +89,7 @@ def copy_untagged_installers(args, omaha_dir):
   shutil.copyfile(source_untagged_stub_installer, target_untagged_stub_installer)
 
 def get_omaha_out_dir(omaha_dir, debug):
-  last_win_dir = 'opt-win'
-  if debug:
-    last_win_dir = 'dbg-win'
+  last_win_dir = 'dbg-win' if debug else 'opt-win'
   return os.path.join(omaha_dir, 'omaha', 'scons-out', last_win_dir)
 
 def prepare_untagged_standalone(args, omaha_dir):
