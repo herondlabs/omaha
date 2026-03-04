@@ -113,7 +113,7 @@ if (_sdk_dir is None):
 skip_authenticode = os.environ.get('SKIP_AUTHENTICODE', 'false').lower() == 'true'
 _sdk_version = os.getenv('OMAHA_WINDOWS_SDK_10_0_VERSION', None)
 _wtl_dir = os.getenv('OMAHA_WTL_DIR', '$GOOGLE3/third_party/wtl/files')
-sign_retry_time = int(os.getenv('OMAHA_SIGN_RETRY', 3))
+sign_retry_time = int(os.getenv('OMAHA_SIGN_RETRY', 1))
 sign_retry_duration = int(os.getenv('OMAHA_SIGN_DURATION', 5))
 signtool_sdk_dir = os.getenv('OMAHA_SIGNTOOL_SDK_DIR')
 _signtool_path = ('python "$MAIN_DIR/tools/retry.py" %s %s \"%s/%s\"' %
