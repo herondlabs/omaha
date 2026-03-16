@@ -11,25 +11,21 @@ import sys
 
 SUPPORTED_LANGUAGE = ["en", "vi"]
 
-def config_address(debug):
+def config_address():
   '''
   Replaces all instances of "OMAHA_URL" in the const_addresses.h file with the url
   given by the environment variable OMAHA_URL
   '''
-  omaha_dir = os.path.dirname(os.path.abspath(__file__))
-  omaha_addresses_path = os.path.join(omaha_dir, 'omaha/base/const_addresses.h')
   omaha_url = os.environ.get('OMAHA_URL', 'https://updates.herond.org')
-  with open(omaha_addresses_path, 'r', encoding='utf-8') as file_to_update:
-    const_addresses = file_to_update.read()
-
-  const_addresses = const_addresses.replace('OMAHA_URL', omaha_url)
-
-  with open(omaha_addresses_path, 'w', encoding='utf-8') as updated_file:
-    updated_file.write(const_addresses)
+  omaha_dir = os.path.dirname(os.path.abspath(__file__))
+  omaha_url_header = os.path.join(omaha_dir,  "omaha", "base", "omaha_url_address.h")
+  with open(omaha_url_header, "w", encoding="utf-8") as f:
+      f.write(f'#define OMAHA_URL "{omaha_url}"\n')
 
 def build(omaha_dir, standalone_installers_dir, debug):
   # move to omaha/omaha and start build.
   os.chdir(os.path.join(omaha_dir, 'omaha'))
+  env = dict(os.environ)
 
   # set signing environment variables
   key_pfx_path = os.environ.get('KEY_PFX_PATH', '')
@@ -38,10 +34,9 @@ def build(omaha_dir, standalone_installers_dir, debug):
   authenticode_hash = os.environ.get('AUTHENTICODE_HASH', '')
   csp = os.environ.get('CER_SCP', '')
 
-  mode = 'opt-win'
-  if debug:
-    mode = 'dbg-win'
+  mode = 'dbg-win' if debug else 'opt-win'
   command = ['hammer.bat', 'MODE=' + mode, '--all', '--standalone_installers_dir=' + standalone_installers_dir]
+
   # update sign flag following: https://stackoverflow.com/questions/17927895/automate-extended-validation-ev-code-signing-with-safenet-etoken
   if key_cer_path:
     command.append('--authenticode_file=' + key_cer_path)
@@ -64,7 +59,6 @@ def build(omaha_dir, standalone_installers_dir, debug):
 
   # Pick signtool.exe from PATH. This in particular ensures that we use the same
   # signtool as Chromium, which is 64 bit and thus has access to the same certs.
-  env = dict(os.environ)
   signtool_path = shutil.which('signtool.exe')
   assert signtool_path, 'signtool.exe is expected to be on PATH'
   env['OMAHA_SIGNTOOL_SDK_DIR'] = os.path.dirname(signtool_path)
@@ -91,9 +85,7 @@ def copy_untagged_installers(args, omaha_dir):
   shutil.copyfile(source_untagged_stub_installer, target_untagged_stub_installer)
 
 def get_omaha_out_dir(omaha_dir, debug):
-  last_win_dir = 'opt-win'
-  if debug:
-    last_win_dir = 'dbg-win'
+  last_win_dir = 'dbg-win' if debug else 'opt-win'
   return os.path.join(omaha_dir, 'omaha', 'scons-out', last_win_dir)
 
 def prepare_untagged_standalone(args, omaha_dir):
@@ -263,7 +255,7 @@ def main():
   args = parse_args()
 
   if args.config_address:
-    config_address(args)
+    config_address()
   else:
     omaha_dir = os.path.join(args.root_out_dir[0], '..', '..', 'brave', 'vendor', 'omaha')
     installer_metadata_dir = prepare_untagged_standalone(args, omaha_dir)

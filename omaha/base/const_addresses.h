@@ -23,6 +23,7 @@
 
 #include <tchar.h>
 #include "omaha/base/constants.h"
+#include "omaha_url_address.h"
 
 namespace omaha {
 
@@ -58,30 +59,30 @@ const TCHAR* const kGoopdateServer = _T("tools.") COMPANY_DOMAIN;
 // The channel for update checks is secured by using CUP to sign the messages.
 // It does not depend solely on https security in any case.
 const TCHAR* const kUrlUpdateCheck =
-    _T("OMAHA_URL/service/update2");
+    _T(OMAHA_URL) _T("/service/update2");
 
 // Pings.
 const TCHAR* const kUrlPing =
-  _T("OMAHA_URL/service/update2");
+   _T(OMAHA_URL) _T("/service/update2");
 
 // The urls below never fall back to http.
 //
 // Crash reports.
 const TCHAR* const kUrlCrashReport =
-    _T("OMAHA_URL/cr/report");
+    _T(OMAHA_URL) _T("/cr/report");
 
 // More information url.
 // Must allow query parameters to be appended to it.
 const TCHAR* const kUrlMoreInfo =
-    _T("OMAHA_URL/support/installer/?");
+    _T(OMAHA_URL) _T("/support/installer/?");
 
 // Code Red check url.
 const TCHAR* const kUrlCodeRedCheck =
-    _T("OMAHA_URL/service/check2");
+    _T(OMAHA_URL) _T("/service/check2");
 
 // Usage stats url.
 const TCHAR* const kUrlUsageStatsReport =
-    _T("OMAHA_URL/tbproxy/usagestats");
+    _T(OMAHA_URL) _T( "/tbproxy/usagestats");
 
 // App logo.
 const TCHAR* const kUrlAppLogo =
