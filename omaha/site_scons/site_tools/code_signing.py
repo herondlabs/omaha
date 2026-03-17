@@ -237,10 +237,8 @@ def DigicertSignedBinaryGenerator(source, target, env, for_signature):
 
   # Only do signing if there are certificate files or a certificate name. The
   # CERTIFICATE_NAME is expected to be the same for both SHA1 and SHA2.
-  if (env.subst('$SHA1_CERTIFICATE_PATH') and
-      env.subst('$SHA2_CERTIFICATE_PATH')) or \
-     (env.subst('$SHA1_CERTIFICATE_HASH') and
-      env.subst('$SHA2_CERTIFICATE_HASH')) or env.subst('$CERTIFICATE_NAME'):
+  if env.subst('$SHA1_CERTIFICATE_PATH') or \
+     env.subst('$SHA1_CERTIFICATE_HASH') or env.subst('$CERTIFICATE_NAME'):
     # Setup common signing command options (same as single signing).
     base_signing_cmd = '$SIGNTOOL sign /v '
     # Add certificate store if any.
@@ -277,12 +275,14 @@ def DigicertSignedBinaryGenerator(source, target, env, for_signature):
     # Add in target name
     sha1_signing_cmd += ' "$TARGET"'
     # Add the SHA1 signing to the list of commands to perform.
-    commands.append(sha1_signing_cmd)
+    # commands.append(sha1_signing_cmd)
 
+  if env.subst('$SHA2_CERTIFICATE_PATH') or \
+     env.subst('$SHA2_CERTIFICATE_HASH') or env.subst('$CERTIFICATE_NAME'):
     # SHA2-specific options, e.g.:
     # "signtool.exe" sign /v /n "Google Inc"
     #   /tr http://timestamp.globalsign.com/?signature=sha2 /td "SHA256"
-    #   /i "Symantec" /as /fd "SHA256" someFile.exe
+    #   /i "Symantec" /fd "SHA256" someFile.exe
     sha2_signing_cmd = base_signing_cmd
     # Add in certificate file if any.
     if env.subst('$SHA2_CERTIFICATE_PATH'):
@@ -304,8 +304,8 @@ def DigicertSignedBinaryGenerator(source, target, env, for_signature):
       sha2_signing_cmd += ' /sha1 "$SHA2_CERTIFICATE_HASH"'
     if env.Bit('use_authenticode_machine_store'):
       sha2_signing_cmd += ' /sm'
-    # Other options needed when adding a second, sha2 signature.
-    sha2_signing_cmd += ' /as /fd "SHA256"'
+    # SHA256 as primary signature.
+    sha2_signing_cmd += ' /fd "SHA256"'
     # Add in target name
     sha2_signing_cmd += ' "$TARGET"'
     # Add the SHA2 signing to the list of commands to perform.
