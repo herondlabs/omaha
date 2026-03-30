@@ -76,6 +76,14 @@ def generate(env):
       CERTIFICATE_HASH='5A9272CE76A9415A4A3A5002A2589A049312AA40',
       SHA1_CERTIFICATE_HASH='',
       SHA2_CERTIFICATE_HASH='',
+      # HSM / Cloud KMS signing options.  When HSM_KEY_CONTAINER is non-empty
+      # the SignedBinary and DualSignedBinary builders emit a single SHA256
+      # signtool command using the CSP key container instead of the legacy
+      # certificate-file / password path.
+      HSM_CERTIFICATE_PATH='',
+      HSM_KEY_CONTAINER='',
+      HSM_CSP='Google Cloud KMS Provider',
+      HSM_TIMESTAMP_SERVER='http://timestamp.sectigo.com',
   )
 
   # Setup Builder for Signing
@@ -89,7 +97,11 @@ def generate(env):
 
 def SignedBinaryEmitter(target, source, env):
   """Add the signing certificate (if any) to the source dependencies."""
-  if env.subst('$CERTIFICATE_PATH'):
+  if env.subst('$HSM_KEY_CONTAINER'):
+    # HSM/KMS mode: depend on the public cert file if provided.
+    if env.subst('$HSM_CERTIFICATE_PATH'):
+      source.append(env.subst('$HSM_CERTIFICATE_PATH'))
+  elif env.subst('$CERTIFICATE_PATH'):
     source.append(env.subst('$CERTIFICATE_PATH'))
   return target, source
 
@@ -106,9 +118,21 @@ def SignedBinaryGenerator(source, target, env, for_signature):
       SCons.Script.Chmod('$TARGET', 0755),
   ]
 
-  # Only do signing if there is a certificate file or certificate name.
-  if env.subst('$CERTIFICATE_PATH') or env.subst('$CERTIFICATE_NAME') \
+  if env.subst('$HSM_KEY_CONTAINER'):
+    # HSM / Cloud KMS signing: single SHA256 pass using a CSP key container.
+    # signtool sign /v /fd sha256 /t <ts> [/f <cert>] /csp <csp> /kc <kc> "$TARGET"
+    hsm_cmd = '$SIGNTOOL sign /v /fd sha256'
+    if env.subst('$HSM_CERTIFICATE_PATH'):
+      hsm_cmd += ' /f "$HSM_CERTIFICATE_PATH"'
+    hsm_cmd += ' /csp "$HSM_CSP"'
+    hsm_cmd += ' /kc "$HSM_KEY_CONTAINER"'
+    if env.subst('$HSM_TIMESTAMP_SERVER'):
+      hsm_cmd += ' /t "$HSM_TIMESTAMP_SERVER"'
+    hsm_cmd += ' "$TARGET"'
+    commands.append(hsm_cmd)
+  elif env.subst('$CERTIFICATE_PATH') or env.subst('$CERTIFICATE_NAME') \
       or env.subst('$CERTIFICATE_HASH'):
+    # Only do signing if there is a certificate file or certificate name.
     # The command used to do signing (target added on below).
     signing_cmd = '$SIGNTOOL sign /fd sha1'
     # Add in certificate file if any.
@@ -235,12 +259,24 @@ def DigicertSignedBinaryGenerator(source, target, env, for_signature):
       SCons.Script.Chmod('$TARGET', 0755),
   ]
 
-  # Only do signing if there are certificate files or a certificate name. The
-  # CERTIFICATE_NAME is expected to be the same for both SHA1 and SHA2.
-  if (env.subst('$SHA1_CERTIFICATE_PATH') and
+  if env.subst('$HSM_KEY_CONTAINER'):
+    # HSM / Cloud KMS signing: single SHA256 pass using a CSP key container.
+    # signtool sign /v /fd sha256 /t <ts> [/f <cert>] /csp <csp> /kc <kc> "$TARGET"
+    hsm_cmd = '$SIGNTOOL sign /v /fd sha256'
+    if env.subst('$HSM_CERTIFICATE_PATH'):
+      hsm_cmd += ' /f "$HSM_CERTIFICATE_PATH"'
+    hsm_cmd += ' /csp "$HSM_CSP"'
+    hsm_cmd += ' /kc "$HSM_KEY_CONTAINER"'
+    if env.subst('$HSM_TIMESTAMP_SERVER'):
+      hsm_cmd += ' /t "$HSM_TIMESTAMP_SERVER"'
+    hsm_cmd += ' "$TARGET"'
+    commands.append(hsm_cmd)
+  elif (env.subst('$SHA1_CERTIFICATE_PATH') and
       env.subst('$SHA2_CERTIFICATE_PATH')) or \
      (env.subst('$SHA1_CERTIFICATE_HASH') and
       env.subst('$SHA2_CERTIFICATE_HASH')) or env.subst('$CERTIFICATE_NAME'):
+    # Only do signing if there are certificate files or a certificate name. The
+    # CERTIFICATE_NAME is expected to be the same for both SHA1 and SHA2.
     # Setup common signing command options (same as single signing).
     base_signing_cmd = '$SIGNTOOL sign /v '
     # Add certificate store if any.
