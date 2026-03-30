@@ -112,8 +112,8 @@ if (_sdk_dir is None):
 
 _sdk_version = os.getenv('OMAHA_WINDOWS_SDK_10_0_VERSION', None)
 _wtl_dir = os.getenv('OMAHA_WTL_DIR', '$GOOGLE3/third_party/wtl/files')
-sign_retry_time = os.getenv('OMAHA_SIGN_RETRY', 3)
-sign_retry_duration = os.getenv('OMAHA_SIGN_DURATION', 5)
+sign_retry_time = int(os.getenv('OMAHA_SIGN_RETRY', 1))
+sign_retry_duration = int(os.getenv('OMAHA_SIGN_DURATION', 5))
 signtool_sdk_dir = os.getenv('OMAHA_SIGNTOOL_SDK_DIR')
 _signtool_path = ('python "$MAIN_DIR/tools/retry.py" %s %s \"%s/%s\"' %
                   (sign_retry_time, sign_retry_duration, signtool_sdk_dir, 'signtool.exe'))
@@ -162,6 +162,11 @@ win_env['ENV']['GOROOT'] = os.getenv('GOROOT',
                                      win_env.subst('$MAIN_DIR') +
                                      '\\..\\third_party\\go\\files')
 win_env['ENV']['LocalAppData'] = os.getenv('LocalAppData')
+win_env['ENV']['GOOGLE_APPLICATION_CREDENTIALS'] = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', '')
+# APPDATA may be absent in CI runner service accounts; fall back to
+# %USERPROFILE%\AppData\Roaming, which Windows always sets for any user.
+_appdata = os.getenv('APPDATA') or os.path.join(os.getenv('USERPROFILE', ''), 'AppData', 'Roaming')
+win_env['ENV']['APPDATA'] = _appdata
 
 # Append paths for supporting tools such as uuidgen.exe.
 win_env.AppendENVPath('PATH', (os.environ['WindowsSdkVerBinPath'] + '\\x86\\'))
@@ -277,6 +282,41 @@ AddOption(
 
 AddOption(
     '--sha2_csp',
+    action='store',
+    nargs=1,
+    type='string',
+    default=None
+)
+
+# HSM / Cloud KMS signing options.  When --hsm_key_container is provided the
+# build uses a single SHA256 signtool command with the given CSP key container
+# instead of the legacy certificate-file/password dual-signing path.
+AddOption(
+    '--hsm_authenticode_file',
+    action='store',
+    nargs=1,
+    type='string',
+    default=None
+)
+
+AddOption(
+    '--hsm_csp',
+    action='store',
+    nargs=1,
+    type='string',
+    default=None
+)
+
+AddOption(
+    '--hsm_key_container',
+    action='store',
+    nargs=1,
+    type='string',
+    default=None
+)
+
+AddOption(
+    '--hsm_timestamp_server',
     action='store',
     nargs=1,
     type='string',
@@ -424,6 +464,11 @@ if not win_env.Bit('build_server'):
     _sha1_authenticode_password = default_sha1_cert_password
     _sha2_authenticode_password = default_sha2_cert_password
 
+  _hsm_authenticode_file = GetOption('hsm_authenticode_file')
+  _hsm_csp = GetOption('hsm_csp')
+  _hsm_key_container = GetOption('hsm_key_container')
+  _hsm_timestamp_server = GetOption('hsm_timestamp_server')
+
   win_env.Replace(
     CERTIFICATE_HASH=_authenticode_hash,
     CERTIFICATE_PASSWORD=_authenticode_password,
@@ -437,7 +482,11 @@ if not win_env.Bit('build_server'):
     SHA1_CERTIFICATE_PATH=_sha1_authenticode_file,
     SHA2_CERTIFICATE_PATH=_sha2_authenticode_file,
     SHA1_CSP=_sha1_csp,
-    SHA2_CSP=_sha2_csp
+    SHA2_CSP=_sha2_csp,
+    HSM_CERTIFICATE_PATH=_hsm_authenticode_file or '',
+    HSM_CSP=_hsm_csp or 'Google Cloud KMS Provider',
+    HSM_KEY_CONTAINER=_hsm_key_container or '',
+    HSM_TIMESTAMP_SERVER=_hsm_timestamp_server or 'http://timestamp.sectigo.com',
   )
 
 # Build the 64 bit version of the code.
