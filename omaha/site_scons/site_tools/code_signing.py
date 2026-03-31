@@ -143,7 +143,7 @@ def SignedBinaryGenerator(source, target, env, for_signature):
         signing_cmd += ' /csp "$SHA1_CSP"'
       # Add certificate password if any.
       if env.subst('$CERTIFICATE_PASSWORD'):
-        signing_cmd += ' /k "$CERTIFICATE_PASSWORD"'
+        signing_cmd += ' /p "$CERTIFICATE_PASSWORD"'
     # Add certificate store if any.
     if env.subst('$CERTIFICATE_NAME'):
       # The command used to do signing (target added on below).
@@ -298,7 +298,7 @@ def DigicertSignedBinaryGenerator(source, target, env, for_signature):
         sha1_signing_cmd += ' /csp "$SHA1_CSP"'
       # Add certificate password if any.
       if env.subst('$SHA1_CERTIFICATE_PASSWORD'):
-        sha1_signing_cmd += ' /k "$SHA1_CERTIFICATE_PASSWORD"'
+        sha1_signing_cmd += ' /p "$SHA1_CERTIFICATE_PASSWORD"'
     # Add timestamp server if any.
     if env.subst('$SHA1_TIMESTAMP_SERVER'):
       sha1_signing_cmd += ' /t "$SHA1_TIMESTAMP_SERVER"'
@@ -328,7 +328,7 @@ def DigicertSignedBinaryGenerator(source, target, env, for_signature):
         sha2_signing_cmd += ' /csp "$SHA2_CSP"'
       # Add certificate password if any.
       if env.subst('$SHA2_CERTIFICATE_PASSWORD'):
-        sha2_signing_cmd += ' /k "$SHA2_CERTIFICATE_PASSWORD"'
+        sha2_signing_cmd += ' /p "$SHA2_CERTIFICATE_PASSWORD"'
     # Add timestamp server if any.
     if env.subst('$SHA2_TIMESTAMP_SERVER'):
       sha2_signing_cmd += ' /tr "$SHA2_TIMESTAMP_SERVER" /td "SHA256"'
