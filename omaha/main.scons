@@ -162,6 +162,12 @@ win_env['ENV']['GOROOT'] = os.getenv('GOROOT',
                                      win_env.subst('$MAIN_DIR') +
                                      '\\..\\third_party\\go\\files')
 win_env['ENV']['LocalAppData'] = os.getenv('LocalAppData')
+win_env['ENV']['GOOGLE_APPLICATION_CREDENTIALS'] = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', '')
+# APPDATA may be absent in CI runner service accounts; fall back to
+# %USERPROFILE%\AppData\Roaming, which Windows always sets for any user.
+_appdata = os.getenv('APPDATA') or os.path.join(
+    os.getenv('USERPROFILE', ''), 'AppData', 'Roaming')
+win_env['ENV']['APPDATA'] = _appdata
 
 # Append paths for supporting tools such as uuidgen.exe.
 win_env.AppendENVPath('PATH', (os.environ['WindowsSdkVerBinPath'] + '\\x86\\'))
@@ -1137,6 +1143,8 @@ else:
       windows_coverage_env,
       ]
 
+print("HELLO THIS IS BUILD ENVIRONMENT")
+print(_environments)
 BuildEnvironments(_environments)
 
 if 'HAMMER_RUNS_TESTS' in os.environ.keys():
