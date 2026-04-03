@@ -3,6 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
+import glob
 import os
 import os.path
 import shutil
@@ -22,10 +23,21 @@ def config_address():
   with open(omaha_url_header, "w", encoding="utf-8") as f:
       f.write(f'#define OMAHA_URL "{omaha_url}"\n')
 
+def _find_x64_signtool():
+  """Return the path to the x64 signtool.exe, preferring Windows Kits over PATH."""
+  wk_root = os.path.join(
+      os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)'),
+      'Windows Kits', '10', 'bin')
+  matches = sorted(
+      glob.glob(os.path.join(wk_root, '*', 'x64', 'signtool.exe')),
+      reverse=True)  # highest SDK version first
+  if matches:
+    return matches[0]
+  return shutil.which('signtool.exe')
+
 def build(omaha_dir, standalone_installers_dir, debug):
   # move to omaha/omaha and start build.
   os.chdir(os.path.join(omaha_dir, 'omaha'))
-  env = dict(os.environ)
 
   # set signing environment variables
   key_pfx_path = os.environ.get('KEY_PFX_PATH', '')
@@ -34,36 +46,60 @@ def build(omaha_dir, standalone_installers_dir, debug):
   authenticode_hash = os.environ.get('AUTHENTICODE_HASH', '')
   csp = os.environ.get('CER_SCP', '')
 
+  # HSM / Cloud KMS signing variables (new path, takes priority when set).
+  # HSM_CRT_PATH          - path to the public .crt certificate file
+  # HSM_KMS_KEY_CONTAINER - key container string (e.g. GCP KMS resource path)
+  # HSM_CSP               - CSP name (default: "Google Cloud KMS Provider")
+  # SIGN_TIMESTAMP_SERVER - timestamp URL (default: http://timestamp.sectigo.com)
+  hsm_crt_path = os.environ.get('HSM_CRT_PATH', '')
+  hsm_kms_key_container = os.environ.get('HSM_KMS_KEY_CONTAINER', '')
+  hsm_csp = os.environ.get('HSM_CSP', 'Google Cloud KMS Provider')
+  hsm_timestamp_server = os.environ.get('SIGN_TIMESTAMP_SERVER', 'http://timestamp.sectigo.com')
+
   mode = 'dbg-win' if debug else 'opt-win'
   command = ['hammer.bat', 'MODE=' + mode, '--all', '--standalone_installers_dir=' + standalone_installers_dir]
 
-  # update sign flag following: https://stackoverflow.com/questions/17927895/automate-extended-validation-ev-code-signing-with-safenet-etoken
-  if key_cer_path:
-    command.append('--authenticode_file=' + key_cer_path)
-    command.append('--sha1_authenticode_file=' + key_cer_path)
-    command.append('--sha2_authenticode_file=' + key_cer_path)
-  if authenticode_password:
-    command.append('--authenticode_password=' + authenticode_password)
-    command.append('--sha1_authenticode_password=' + authenticode_password)
-    command.append('--sha2_authenticode_password=' + authenticode_password)
-  if authenticode_hash:
-    command.append('--authenticode_hash=' + authenticode_hash)
-    command.append('--sha1_authenticode_hash=' + authenticode_hash)
-    command.append('--sha2_authenticode_hash=' + authenticode_hash)
-    # Our certs identified by hash are always in the machine store:
-    command.append('--use_authenticode_machine_store')
+  if hsm_kms_key_container:
+    # HSM / Cloud KMS signing: single SHA256 pass via signtool /kc.
+    if hsm_crt_path:
+      command.append('--hsm_authenticode_file=' + hsm_crt_path)
+    command.append('--hsm_csp=' + hsm_csp)
+    command.append('--hsm_key_container=' + hsm_kms_key_container)
+    command.append('--hsm_timestamp_server=' + hsm_timestamp_server)
+  else:
+    # update sign flag following: https://stackoverflow.com/questions/17927895/automate-extended-validation-ev-code-signing-with-safenet-etoken
+    if key_cer_path:
+      command.append('--authenticode_file=' + key_cer_path)
+      command.append('--sha1_authenticode_file=' + key_cer_path)
+      command.append('--sha2_authenticode_file=' + key_cer_path)
+    if authenticode_password:
+      command.append('--authenticode_password=' + authenticode_password)
+      command.append('--sha1_authenticode_password=' + authenticode_password)
+      command.append('--sha2_authenticode_password=' + authenticode_password)
+    if authenticode_hash:
+      command.append('--authenticode_hash=' + authenticode_hash)
+      command.append('--sha1_authenticode_hash=' + authenticode_hash)
+      command.append('--sha2_authenticode_hash=' + authenticode_hash)
+      # Our certs identified by hash are always in the machine store:
+      command.append('--use_authenticode_machine_store')
 
-  if csp:
-    command.append('--sha1_csp=' + csp)
-    command.append('--sha2_csp=' + csp)
+    if csp:
+      command.append('--sha1_csp=' + csp)
+      command.append('--sha2_csp=' + csp)
 
-  # Pick signtool.exe from PATH. This in particular ensures that we use the same
-  # signtool as Chromium, which is 64 bit and thus has access to the same certs.
-  signtool_path = shutil.which('signtool.exe')
-  assert signtool_path, 'signtool.exe is expected to be on PATH'
-  env['OMAHA_SIGNTOOL_SDK_DIR'] = os.path.dirname(signtool_path)
+  # Prefer the x64 signtool so that it can load the 64-bit Google Cloud KMS
+  # CNG provider DLL.  Fall back to whatever is on PATH.  Write directly to
+  # os.environ so hammer.bat inherits it through the full process env block
+  # (passing env= to check_call creates an isolated block that vcvarsall.bat
+  # can strip when it does its internal 'endlocal & set' dance).
+  signtool_path = _find_x64_signtool()
+  assert signtool_path, 'signtool.exe (x64) not found in Windows Kits or PATH'
+  os.environ['OMAHA_SIGNTOOL_SDK_DIR'] = os.path.dirname(signtool_path)
 
-  sp.check_call(command, stderr=sp.STDOUT, env=env)
+  # No env= here: subprocess inherits the full Windows process environment,
+  # including APPDATA (provided by Windows for user-mode processes) and all
+  # vars set above via os.environ.
+  sp.check_call(command, stderr=sp.STDOUT)
 
 def copy_untagged_installers(args, omaha_dir):
   omaha_out_dir = get_omaha_out_dir(omaha_dir, args.debug)
