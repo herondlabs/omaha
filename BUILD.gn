@@ -60,12 +60,26 @@ action("build_omaha_installer") {
     "--brave_full_version=$_brave_full_version",
   ]
 
+  _tagged_langs = []
+  if (tag_lang == "" || tag_lang == "all") {
+    _tagged_langs = [
+      "en",
+      "vi",
+    ]
+  } else {
+    _tagged_langs = string_split(tag_lang, ",")
+  }
+
   outputs = [
-    "$root_out_dir/$brave_stub_installer_exe",
-    "$root_out_dir/$brave_standalone_installer_exe",
-    "$root_out_dir/$brave_silent_installer_exe",
     "$root_out_dir/$brave_untagged_installer_exe",
   ]
+  foreach(_lang, _tagged_langs) {
+    outputs += [
+      "$root_out_dir/lang/$_lang/$brave_stub_installer_exe",
+      "$root_out_dir/lang/$_lang/$brave_standalone_installer_exe",
+      "$root_out_dir/lang/$_lang/$brave_silent_installer_exe",
+    ]
+  }
 
   deps = [
     "//brave/build/win:create_signed_installer",
