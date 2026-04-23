@@ -18,7 +18,7 @@ def config_address():
   given by the environment variable OMAHA_URL
   '''
   omaha_url = os.environ.get('OMAHA_URL', 'https://updates.herond.org')
-  omaha_dir = os.path.dirname(os.path.abspath(__file__))
+  omaha_dir = os.path.dirname(os.path.abspath(__file__))a
   omaha_url_header = os.path.join(omaha_dir,  "omaha", "base", "omaha_url_address.h")
   with open(omaha_url_header, "w", encoding="utf-8") as f:
       f.write(f'#define OMAHA_URL "{omaha_url}"\n')
@@ -31,9 +31,14 @@ def _find_x64_signtool():
   matches = sorted(
       glob.glob(os.path.join(wk_root, '*', 'x64', 'signtool.exe')),
       reverse=True)  # highest SDK version first
-  if matches:
-    return matches[0]
-  return shutil.which('signtool.exe')
+  signtool_path = matches[0] if matches else shutil.which('signtool.exe')
+  
+  if not signtool_path or not os.path.exists(signtool_path):
+    print("[ERROR] signtool.exe not found in Windows Kits or PATH. Halting build.", file=sys.stderr)
+    sys.exit(1)
+
+  print(f"[INFO] Using signtool from: {signtool_path}")
+  return signtool_path
 
 def build(omaha_dir, standalone_installers_dir, debug):
   # move to omaha/omaha and start build.
