@@ -18,7 +18,7 @@ def config_address():
   given by the environment variable OMAHA_URL
   '''
   omaha_url = os.environ.get('OMAHA_URL', 'https://updates.herond.org')
-  omaha_dir = os.path.dirname(os.path.abspath(__file__))a
+  omaha_dir = os.path.dirname(os.path.abspath(__file__))
   omaha_url_header = os.path.join(omaha_dir,  "omaha", "base", "omaha_url_address.h")
   with open(omaha_url_header, "w", encoding="utf-8") as f:
       f.write(f'#define OMAHA_URL "{omaha_url}"\n')
