@@ -27,6 +27,7 @@ If no certificate file is specified, copying instead of signing will occur.
 If an empty timestamp server string is specified, there will be no timestamp.
 """
 
+import os
 import optparse
 from SCons.compat._scons_optparse import OptionConflictError
 import SCons.Script
@@ -47,9 +48,15 @@ def generate(env):
     # for each build type.
     pass
 
+  _sdk_dir = os.environ.get('OMAHA_SIGNTOOL_SDK_DIR', '')
+  _signtool_default = (
+      '"%s/signtool.exe"' % _sdk_dir.replace('\\', '/')
+      if _sdk_dir else '"$THIRD_PARTY/code_signing/signtool.exe"')
+
   env.SetDefault(
-      # Path to Microsoft signtool.exe
-      SIGNTOOL='"$THIRD_PARTY/code_signing/signtool.exe"',
+      # Path to Microsoft signtool.exe, resolved from OMAHA_SIGNTOOL_SDK_DIR
+      # when set (auto-detected by build_omaha.py / hammer.bat).
+      SIGNTOOL=_signtool_default,
       # No certificate by default.
       CERTIFICATE_PATH='',
       # No sha1 certificate by default.

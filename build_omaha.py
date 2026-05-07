@@ -31,9 +31,14 @@ def _find_x64_signtool():
   matches = sorted(
       glob.glob(os.path.join(wk_root, '*', 'x64', 'signtool.exe')),
       reverse=True)  # highest SDK version first
-  if matches:
-    return matches[0]
-  return shutil.which('signtool.exe')
+  signtool_path = matches[0] if matches else shutil.which('signtool.exe')
+  
+  if not signtool_path or not os.path.exists(signtool_path):
+    print("[ERROR] signtool.exe not found in Windows Kits or PATH. Halting build.", file=sys.stderr)
+    sys.exit(1)
+
+  print(f"[INFO] Using signtool from: {signtool_path}")
+  return signtool_path
 
 def build(omaha_dir, standalone_installers_dir, debug):
   # move to omaha/omaha and start build.

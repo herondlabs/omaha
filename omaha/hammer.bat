@@ -108,7 +108,7 @@ echo OMAHA_WINDOWS_SDK_10_0_VERSION: %OMAHA_WINDOWS_SDK_10_0_VERSION%
 
 :: Directory which includes the sign.exe tool for Authenticode signing.
 if not defined OMAHA_SIGNTOOL_SDK_DIR (
-  set OMAHA_SIGNTOOL_SDK_DIR="%WindowsSdkVerBinPath%\x86"
+  set OMAHA_SIGNTOOL_SDK_DIR="%WindowsSdkVerBinPath%\x64"
 )
 echo OMAHA_SIGNTOOL_SDK_DIR: %OMAHA_SIGNTOOL_SDK_DIR%
 
