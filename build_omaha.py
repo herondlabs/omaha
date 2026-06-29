@@ -106,6 +106,43 @@ def build(omaha_dir, standalone_installers_dir, debug):
   # vars set above via os.environ.
   sp.check_call(command, stderr=sp.STDOUT)
 
+def _sign_brave_installer(installer_path):
+  """Sign herond_installer.exe before it is embedded in the omaha package.
+
+  The GN sign() step is a plain copy when skip_signing=true, so
+  herond_installer.exe arrives here unsigned.  Sign it now so that the
+  embedded copy (and the final extracted copy at update time) is signed.
+  Skipped silently when HSM credentials are absent (e.g. local dev builds).
+  """
+  hsm_kms_key_container = os.environ.get('HSM_KMS_KEY_CONTAINER', '')
+  hsm_crt_path = os.environ.get('HSM_CRT_PATH', '')
+  if not (hsm_kms_key_container and hsm_crt_path):
+    print(f"[INFO] HSM credentials not set, skipping pre-sign of "
+          f"{os.path.basename(installer_path)}")
+    return
+
+  hsm_csp = os.environ.get('HSM_CSP', 'Google Cloud KMS Provider')
+  hsm_timestamp_server = os.environ.get(
+      'SIGN_TIMESTAMP_SERVER', 'http://timestamp.sectigo.com')
+  signtool_path = _find_x64_signtool()
+
+  cmd = [
+      signtool_path, 'sign',
+      '/v',
+      '/fd', 'sha256',
+      '/f', hsm_crt_path,
+      '/csp', hsm_csp,
+      '/kc', hsm_kms_key_container,
+      '/tr', hsm_timestamp_server,
+      '/td', 'sha256',
+      installer_path,
+  ]
+  print(f"[INFO] Pre-signing {os.path.basename(installer_path)} "
+        f"before omaha packaging...")
+  sp.check_call(cmd, stderr=sp.STDOUT)
+  print(f"[INFO] Pre-signing complete: {installer_path}")
+
+
 def copy_untagged_installers(args, omaha_dir):
   omaha_out_dir = get_omaha_out_dir(omaha_dir, args.debug)
 
@@ -299,6 +336,9 @@ def main():
     config_address()
   else:
     omaha_dir = os.path.join(args.root_out_dir[0], '..', '..', 'brave', 'vendor', 'omaha')
+    brave_installer_path = os.path.join(
+        args.root_out_dir[0], args.brave_installer_exe[0])
+    _sign_brave_installer(brave_installer_path)
     installer_metadata_dir = prepare_untagged_standalone(args, omaha_dir)
     build(omaha_dir, installer_metadata_dir, args.debug)
     tag_standalone(args, omaha_dir)
