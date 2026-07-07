@@ -15,8 +15,6 @@ action("build_omaha_installer") {
 
   inputs = [ "build_omaha.py" ]
 
-  sources = [ "$root_out_dir/$brave_installer_exe" ]
-
   _install_switch = ""
   _tag_app_name = "Herond-Release"
   if (brave_channel == "beta") {
