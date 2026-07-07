@@ -80,7 +80,9 @@ action("build_omaha_installer") {
   }
 
   deps = [
-    "//brave/build/win:create_signed_installer",
+    # Transitively depends on //brave/build/win:create_signed_installer.
+    # herond_installer.exe must already be signed before it's embedded below.
+    "//herond:sign_herond_installer",
   ]
 }
 
